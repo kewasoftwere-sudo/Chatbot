@@ -1,0 +1,9 @@
+{
+  "name": "kewa-ai",
+  "version": "1.0.0",
+  "description": "Kewa AI Chatbot with Netlify Serverless Functions",
+  "dependencies": {
+    "@google/generative-ai": "^0.1.1",
+    "firebase-admin": "^12.1.0"
+  }
+}

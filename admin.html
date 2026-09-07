@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kewa AI - Admin Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#07090e',
+                        cardBg: '#0f1423',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK Compat CDN -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <style>
+        .neon-glow-red { box-shadow: 0 0 20px rgba(239, 68, 68, 0.25); }
+        .neon-text-glow { text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+    </style>
+</head>
+<body class="bg-darkBg text-white min-h-screen flex flex-col font-sans selection:bg-red-500 selection:text-white">
+
+    <!-- Password Guard Overlay -->
+    <div id="authOverlay" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center px-4">
+        <div class="bg-gray-900 border border-red-500/40 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center neon-glow-red">
+            <div class="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-3 text-red-400">
+                <i class="fa-solid fa-shield-halved text-lg"></i>
+            </div>
+            <h3 class="text-base font-bold text-white mb-1">Restricted Admin Area</h3>
+            <p class="text-xs text-gray-400 mb-4">Enter master key to decrypt analytics.</p>
+            <input type="password" id="masterPassword" placeholder="Master password..." class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-red-500 mb-3">
+            <button onclick="handleAdminLogin()" class="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold shadow-lg">
+                Authorize Access
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Dashboard (Hidden by default until login) -->
+    <div id="dashboardContent" class="hidden flex-1 flex flex-col max-w-5xl w-full mx-auto p-4 sm:p-8">
+        <!-- Top Header -->
+        <header class="flex items-center justify-between pb-6 border-b border-gray-800 mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-extrabold text-white tracking-wider neon-text-glow">KEWA ADMIN</h1>
+                    <p class="text-[10px] text-gray-400">System Analytics & Firestore Logs</p>
+                </div>
+            </div>
+            <button onclick="window.location.href='/'" class="px-3 py-1.5 rounded-xl border border-gray-800 bg-gray-900 text-xs text-gray-300 hover:text-white">
+                <i class="fa-solid fa-arrow-left mr-1"></i> Back to Chat
+            </button>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div class="bg-gray-900/60 border border-gray-800 p-4 rounded-2xl">
+                <p class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Total Firestore Logs</p>
+                <h3 id="totalRequests" class="text-xl font-extrabold text-red-400">0</h3>
+            </div>
+            <div class="bg-gray-900/60 border border-gray-800 p-4 rounded-2xl">
+                <p class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Active Status</p>
+                <h3 class="text-xl font-extrabold text-cyan-400 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span> Online
+                </h3>
+            </div>
+            <div class="bg-gray-900/60 border border-gray-800 p-4 rounded-2xl">
+                <p class="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Security Guard</p>
+                <h3 class="text-xl font-extrabold text-purple-400">Encrypted</h3>
+            </div>
+        </div>
+
+        <!-- Logs Table Section -->
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl overflow-hidden flex-1 flex flex-col">
+            <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
+                <h2 class="text-xs font-bold text-gray-300 flex items-center gap-2">
+                    <i class="fa-solid fa-list text-red-400"></i> Live Prompt History from Firestore
+                </h2>
+                <button onclick="fetchFirestoreLogs()" class="text-[10px] text-red-400 hover:underline">
+                    <i class="fa-solid fa-rotate mr-1"></i> Refresh Logs
+                </button>
+            </div>
+            <div class="overflow-x-auto flex-1">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-gray-800 text-gray-500 font-mono text-[10px]">
+                            <th class="p-3">TIMESTAMP</th>
+                            <th class="p-3">USER PROMPT</th>
+                            <th class="p-3">AI RESPONSE</th>
+                            <th class="p-3">STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody" class="divide-y divide-gray-800/50">
+                        <tr>
+                            <td colspan="4" class="p-4 text-center text-gray-500">Loading logs from database...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script to Handle Firebase Connection and Admin Logs -->
+    <script>
+        // Apni Firebase configuration yahan daal dena bhai
+        const firebaseConfig = {
+            apiKey: "APNA_FIREBASE_API_KEY",
+            authDomain: "apna-project.firebaseapp.com",
+            projectId: "apna-project-id",
+            storageBucket: "apna-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123:web:abc"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        function handleAdminLogin() {
+            const pass = document.getElementById('masterPassword').value;
+            if(pass === "admin123") {
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('dashboardContent').classList.remove('hidden');
+                fetchFirestoreLogs();
+            } else {
+                alert("Galat Password Hai! Access Denied.");
+            }
+        }
+
+        async function fetchFirestoreLogs() {
+            const tbody = document.getElementById('logsTableBody');
+            tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-500">Fetching logs...</td></tr>`;
+
+            try {
+                const snapshot = await db.collection("chat_logs").orderBy("timestamp", "desc").get();
+                tbody.innerHTML = '';
+                
+                document.getElementById('totalRequests').innerText = snapshot.size;
+
+                if(snapshot.empty) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-500">No logs found in database yet.</td></tr>`;
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const dateStr = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : 'Just now';
+                    
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-gray-800/30";
+                    row.innerHTML = `
+                        <td class="p-3 text-gray-400 font-mono text-[10px]">${dateStr}</td>
+                        <td class="p-3 text-purple-300 truncate max-w-xs">${escapeHtml(data.prompt || '')}</td>
+                        <td class="p-3 text-gray-300 truncate max-w-xs">${escapeHtml(data.response || '')}</td>
+                        <td class="p-3"><span class="px-2 py-0.5 rounded-full bg-green-950 text-green-400 text-[9px] border border-green-500/30">SUCCESS</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error fetching logs:", error);
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-400">Failed to load logs. Check Firebase config keys.</td></tr>`;
+            }
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+    </script>
+</body>
+</html>

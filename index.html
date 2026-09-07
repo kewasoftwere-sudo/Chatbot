@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kewa AI Image Generator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        cardBg: '#111827',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-darkBg text-white dark:bg-darkBg dark:text-white bg-gray-50 text-gray-900 transition-colors duration-300 min-h-screen flex flex-col justify-between font-sans selection:bg-purple-500 selection:text-white overflow-x-hidden relative">
+
+    <!-- Chat History Sidebar Drawer -->
+    <div id="historyDrawer" class="fixed inset-y-0 left-0 w-72 bg-gray-950 border-r border-gray-800 shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-800/80">
+            <h2 class="text-sm font-bold flex items-center gap-2 text-purple-400">
+                <i class="fa-solid fa-clock-rotate-left"></i> Chat History
+            </h2>
+            <button onclick="toggleHistoryDrawer()" class="text-gray-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <div id="chatListContainer" class="flex-1 overflow-y-auto p-4 space-y-2">
+            <div onclick="loadChat('Futuristic Glowing Tree')" class="p-3 rounded-xl bg-gray-900/60 hover:bg-purple-600/20 border border-gray-800/80 cursor-pointer transition text-left">
+                <p class="text-xs font-medium truncate text-gray-200">Futuristic Glowing Tree</p>
+                <span class="text-[10px] text-gray-500">Today, 5:30 PM</span>
+            </div>
+            <div onclick="loadChat('Cyberpunk City Neon Lights')" class="p-3 rounded-xl bg-gray-900/60 hover:bg-purple-600/20 border border-gray-800/80 cursor-pointer transition text-left">
+                <p class="text-xs font-medium truncate text-gray-200">Cyberpunk City Neon Lights</p>
+                <span class="text-[10px] text-gray-500">Yesterday</span>
+            </div>
+        </div>
+        <div class="p-4 border-t border-gray-800/85">
+            <button onclick="startNewChat()" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition shadow-lg flex items-center justify-center gap-2">
+                <i class="fa-solid fa-plus"></i> New Chat
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Modal Pop-up -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center px-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl relative">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-800 mb-4">
+                <h3 class="text-sm font-bold flex items-center gap-2 text-purple-400">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </h3>
+                <button onclick="toggleSettingsModal()" class="text-gray-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <!-- Setting Item: Theme Toggle -->
+            <div class="flex items-center justify-between py-2">
+                <span class="text-xs font-medium text-gray-300 flex items-center gap-2">
+                    <i id="themeIcon" class="fa-solid fa-moon text-purple-400"></i> Appearance Mode
+                </span>
+                <button onclick="toggleTheme()" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-medium transition border border-gray-700" id="themeTextBtn">
+                    Light Theme
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backdrop for Sidebar -->
+    <div id="sidebarBackdrop" onclick="toggleHistoryDrawer()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden transition-opacity"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="w-full max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-8 py-3 relative z-30 shrink-0">
+        <!-- Left Side: Hamburger Menu with Dropdown -->
+        <div class="relative">
+            <button id="menuButton" onclick="toggleMenu()" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-800/50 transition focus:outline-none border border-gray-800 text-lg">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+            <!-- Left Dropdown Menu -->
+            <div id="dropdownMenu" class="hidden absolute left-0 mt-2 w-48 bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl py-2 z-50 backdrop-blur-xl">
+                <button onclick="startNewChat(); toggleMenu();" class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-purple-600/20 hover:text-purple-400 transition">
+                    <i class="fa-solid fa-plus text-xs"></i> New Chat
+                </button>
+                <button onclick="toggleHistoryDrawer(); toggleMenu();" class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-purple-600/20 hover:text-purple-400 transition">
+                    <i class="fa-solid fa-clock-rotate-left text-xs"></i> Chat History
+                </button>
+                <button onclick="toggleSettingsModal(); toggleMenu();" class="w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-purple-600/20 hover:text-purple-400 transition border-t border-gray-800/60 mt-1 pt-2.5">
+                    <i class="fa-solid fa-gear text-xs"></i> Settings
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Side: Google Login Button Only -->
+        <div>
+            <button class="flex items-center gap-2 bg-gray-800/60 hover:bg-gray-800 border border-gray-700 px-4 py-2 rounded-full text-xs font-medium transition backdrop-blur-md shadow-sm">
+                <i class="fa-brands fa-google text-blue-400"></i> Google Login
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Section -->
+    <main class="w-full max-w-3xl mx-auto flex flex-col items-center justify-center text-center px-4 py-2 my-auto shrink-0">
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight">
+            <span class="bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 bg-clip-text text-transparent">Kewa AI</span>
+        </h1>
+        <p class="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.3em] text-gray-300 mt-1 mb-1">Image Generator</p>
+        
+        <div class="flex items-center justify-center gap-2 w-36 my-1">
+            <div class="h-[1px] bg-gradient-to-r from-transparent to-purple-500 w-full"></div>
+            <i class="fa-solid fa-wand-magic-sparkles text-purple-400 text-[10px]"></i>
+            <div class="h-[1px] bg-gradient-to-l from-transparent to-cyan-500 w-full"></div>
+        </div>
+
+        <p class="text-xs text-gray-400 mb-3">Describe your imagination and let AI create it for you.</p>
+
+        <div class="relative w-full max-w-xs sm:max-w-sm p-1.5 rounded-2xl bg-gradient-to-b from-purple-500/20 to-blue-500/10 border border-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.15)] mb-3">
+            <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80" alt="Generated Preview" class="rounded-xl w-full h-36 sm:h-48 object-cover">
+        </div>
+
+        <button class="flex items-center gap-2 px-4 py-1.5 rounded-full border border-purple-500/40 bg-purple-950/20 hover:bg-purple-900/30 text-[11px] font-medium text-purple-200 transition shadow-md backdrop-blur-md">
+            <i class="fa-solid fa-play text-purple-400 text-[10px]"></i> Watch ad for generating 1 image
+        </button>
+    </main>
+
+    <!-- Bottom Input Bar -->
+    <footer class="w-full max-w-2xl mx-auto px-4 py-3 shrink-0 relative z-30">
+        <div class="flex items-center bg-gray-900/90 dark:bg-gray-900/90 bg-white/90 border border-purple-500/30 rounded-2xl p-1.5 shadow-xl backdrop-blur-xl">
+            <button class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-800/60 hover:bg-gray-800 text-gray-300 transition ml-1 shrink-0">
+                <i class="fa-solid fa-plus text-xs"></i>
+            </button>
+            <input id="chatInput" type="text" placeholder="Describe the image you want to create..." class="w-full bg-transparent border-none outline-none px-3 text-xs placeholder-gray-500 text-current">
+            <button onclick="handleGenerate()" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white transition shadow-md shrink-0">
+                <i class="fa-solid fa-paper-plane text-[10px]"></i>
+            </button>
+        </div>
+    </footer>
+
+    <!-- JavaScript for Interactions -->
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('dropdownMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        window.addEventListener('click', function(e) {
+            const menu = document.getElementById('dropdownMenu');
+            const button = document.getElementById('menuButton');
+            if (!menu.contains(e.target) && !button.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        function toggleHistoryDrawer() {
+            const drawer = document.getElementById('historyDrawer');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            drawer.classList.toggle('-translate-x-full');
+            backdrop.classList.toggle('hidden');
+        }
+
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function startNewChat() {
+            document.getElementById('chatInput').value = '';
+            console.log("New Chat Started");
+        }
+
+        function loadChat(chatTitle) {
+            document.getElementById('chatInput').value = chatTitle;
+            toggleHistoryDrawer();
+        }
+
+        function handleGenerate() {
+            const query = document.getElementById('chatInput').value;
+            if(query.trim() !== "") {
+                const chatList = document.getElementById('chatListContainer');
+                const newItem = document.createElement('div');
+                newItem.className = "p-3 rounded-xl bg-gray-900/60 hover:bg-purple-600/20 border border-gray-800/80 cursor-pointer transition text-left";
+                newItem.innerHTML = `<p class="text-xs font-medium truncate text-gray-200">${query}</p><span class="text-[10px] text-gray-500">Just now</span>`;
+                chatList.prepend(newItem);
+                
+                alert("Generating image for: " + query);
+            } else {
+                alert("Please describe an image first!");
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('themeIcon');
+            const themeTextBtn = document.getElementById('themeTextBtn');
+
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                themeIcon.className = "fa-solid fa-sun text-purple-400";
+                themeTextBtn.innerText = "Dark Theme";
+            } else {
+                html.classList.add('dark');
+                themeIcon.className = "fa-solid fa-moon text-purple-400";
+                themeTextBtn.innerText = "Light Theme";
+            }
+        }
+    </script>
+</body>
+</html>
